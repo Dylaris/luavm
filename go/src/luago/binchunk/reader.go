@@ -83,10 +83,113 @@ func (self *reader) checkHeader() {
 	}
 }
 
+// prototype
 func (self *reader) readProto(parentSource string) *Prototype {
 	source := self.readString()
 	if source == "" {
 		source = parentSource
 	}
-	return &Prototype{}
+	return &Prototype{
+		Source:          source,
+		LineDefined:     self.readUint32(),
+		LastLineDefined: self.readUint32(),
+		NumParams:       self.readByte(),
+		IsVararg:        self.readByte(),
+		MaxStackSize:    self.readByte(),
+		Code:            self.readCode(),
+		Constants:       self.readConstants(),
+		Upvalues:        self.readUpvalues(),
+		Protos:          self.readProtos(source),
+		LineInfo:        self.readLineInfo(),
+		LocVars:         self.readLocVars(),
+		UpvalueNames:    self.readUpvalueNames(),
+	}
+}
+
+func (self *reader) readProtos(parentSource string) []*Prototype {
+	protos := make([]*Prototype, self.readUint32())
+	for i := range protos {
+		protos[i] = self.readProto(parentSource)
+	}
+	return protos
+}
+
+// code
+func (self *reader) readCode() []uint32 {
+	code := make([]uint32, self.readUint32())
+	for i := range code {
+		code[i] = self.readUint32()
+	}
+	return code
+}
+
+// constants
+func (self *reader) readConstants() []any {
+	constants := make([]any, self.readUint32())
+	for i := range constants {
+		constants[i] = self.readConstant()
+	}
+	return constants
+}
+
+func (self *reader) readConstant() any {
+	switch self.readByte() { // tag
+	case TAG_NIL:
+		return nil
+	case TAG_BOOLEAN:
+		return self.readByte() != 0
+	case TAG_INTEGER:
+		return self.readLuaInteger()
+	case TAG_NUMBER:
+		return self.readLuaNumber()
+	case TAG_SHORT_STR:
+		return self.readString()
+	case TAG_LONG_STR:
+		return self.readString()
+	default:
+		panic("corrupted")
+	}
+}
+
+// upvalues
+func (self *reader) readUpvalues() []Upvalue {
+	upvalues := make([]Upvalue, self.readUint32())
+	for i := range upvalues {
+		upvalues[i] = Upvalue{
+			Instack: self.readByte(),
+			Idx:     self.readByte(),
+		}
+	}
+	return upvalues
+}
+
+// line info
+func (self *reader) readLineInfo() []uint32 {
+	lineInfo := make([]uint32, self.readUint32())
+	for i := range lineInfo {
+		lineInfo[i] = self.readUint32()
+	}
+	return lineInfo
+}
+
+// local values
+func (self *reader) readLocVars() []LocVar {
+	locVars := make([]LocVar, self.readUint32())
+	for i := range locVars {
+		locVars[i] = LocVar{
+			VarName: self.readString(),
+			StartPC: self.readUint32(),
+			EndPC:   self.readUint32(),
+		}
+	}
+	return locVars
+}
+
+// upvalue names
+func (self *reader) readUpvalueNames() []string {
+	names := make([]string, self.readUint32())
+	for i := range names {
+		names[i] = self.readString()
+	}
+	return names
 }
