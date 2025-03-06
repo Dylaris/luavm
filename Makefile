@@ -9,4 +9,7 @@ $(TARGET):
 clean: 
 	rm -rf $(PWD)/go/bin
 
+exec: $(TARGET)
+	$(TARGET)
+
 .PHONY: all clean
