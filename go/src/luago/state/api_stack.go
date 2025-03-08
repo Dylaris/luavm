@@ -160,7 +160,8 @@ func (ste *luaState) IsNumber(idx int) bool {
 }
 
 func (ste *luaState) IsString(idx int) bool {
-	return ste.Type(idx) == api.LUA_TSTRING
+	t := ste.Type(idx)
+	return t == api.LUA_TSTRING || t == api.LUA_TNUMBER
 }
 
 func (ste *luaState) ToBoolean(idx int) bool {
@@ -175,8 +176,7 @@ func (ste *luaState) ToInteger(idx int) int64 {
 
 func (ste *luaState) ToIntegerX(idx int) (int64, bool) {
 	val := ste.stack.get(idx)
-	i, ok := val.(int64)
-	return i, ok
+	return convertToInteger(val)
 }
 
 func (ste *luaState) ToNumber(idx int) float64 {
@@ -186,14 +186,7 @@ func (ste *luaState) ToNumber(idx int) float64 {
 
 func (ste *luaState) ToNumberX(idx int) (float64, bool) {
 	val := ste.stack.get(idx)
-	switch x := val.(type) {
-	case float64:
-		return x, true
-	case int64:
-		return float64(x), true
-	default:
-		return 0, false
-	}
+	return convertToFloat(val)
 }
 
 func (ste *luaState) ToString(idx int) string {
