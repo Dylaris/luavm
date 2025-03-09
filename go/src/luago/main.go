@@ -149,6 +149,23 @@ func list(f *binchunk.Prototype) {
 	}
 }
 
+func luaMain(proto *binchunk.Prototype) {
+	nRegs := int(proto.MaxStackSize)
+	ls := state.New(nRegs+8, proto)
+	ls.SetTop(nRegs)
+	for {
+		pc := ls.PC()
+		inst := vm.Instruction(ls.Fetch())
+		if inst.Opcode() != vm.OP_RETURN {
+			inst.Execute(ls)
+			fmt.Printf("[%02d] %s ", pc+1, inst.OpName())
+			printStack(ls)
+		} else {
+			break
+		}
+	}
+}
+
 func main() {
 	if len(os.Args) > 1 {
 		data, err := os.ReadFile(os.Args[1])
@@ -156,24 +173,6 @@ func main() {
 			panic(err)
 		}
 		proto := binchunk.Undump(data)
-		list(proto)
-	} else {
-		ls := state.New()
-		ls.PushInteger(1)
-		ls.PushString("2.0")
-		ls.PushString("3.0")
-		ls.PushNumber(4.0)
-		printStack(ls)
-
-		ls.Arith(api.LUA_OPADD)
-		printStack(ls)
-		ls.Arith(api.LUA_OPBNOT)
-		printStack(ls)
-		ls.Len(2)
-		printStack(ls)
-		ls.Concat(3)
-		printStack(ls)
-		ls.PushBoolean(ls.Compare(1, 2, api.LUA_OPEQ))
-		printStack(ls)
+		luaMain(proto)
 	}
 }

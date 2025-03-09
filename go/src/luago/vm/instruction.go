@@ -1,5 +1,7 @@
 package vm
 
+import "luago/api"
+
 /* Decoding instructions */
 
 type Instruction uint32
@@ -7,44 +9,53 @@ type Instruction uint32
 const MAXARG_Bx = 1<<18 - 1
 const MAXARG_sBx = MAXARG_Bx >> 1
 
-func (self Instruction) Opcode() int {
-	return int(self & 0x3F)
+func (inst Instruction) Opcode() int {
+	return int(inst & 0x3F)
 }
 
-func (self Instruction) ABC() (a, b, c int) {
-	a = int(self >> 6 & 0xFF)
-	c = int(self >> 14 & 0x1FF)
-	b = int(self >> 23 & 0x1FF)
+func (inst Instruction) ABC() (a, b, c int) {
+	a = int(inst >> 6 & 0xFF)
+	c = int(inst >> 14 & 0x1FF)
+	b = int(inst >> 23 & 0x1FF)
 	return
 }
 
-func (self Instruction) ABx() (a, bx int) {
-	a = int(self >> 6 & 0xFF)
-	bx = int(self >> 14)
+func (inst Instruction) ABx() (a, bx int) {
+	a = int(inst >> 6 & 0xFF)
+	bx = int(inst >> 14)
 	return
 }
 
-func (self Instruction) AsBx() (a, sbx int) {
-	a, bx := self.ABx()
+func (inst Instruction) AsBx() (a, sbx int) {
+	a, bx := inst.ABx()
 	return a, bx - MAXARG_sBx
 }
 
-func (self Instruction) Ax() int {
-	return int(self >> 6)
+func (inst Instruction) Ax() int {
+	return int(inst >> 6)
 }
 
-func (self Instruction) OpName() string {
-	return opcodes[self.Opcode()].name
+func (inst Instruction) OpName() string {
+	return opcodes[inst.Opcode()].name
 }
 
-func (self Instruction) OpMode() byte {
-	return opcodes[self.Opcode()].opMode
+func (inst Instruction) OpMode() byte {
+	return opcodes[inst.Opcode()].opMode
 }
 
-func (self Instruction) BMode() byte {
-	return opcodes[self.Opcode()].argBMode
+func (inst Instruction) BMode() byte {
+	return opcodes[inst.Opcode()].argBMode
 }
 
-func (self Instruction) CMode() byte {
-	return opcodes[self.Opcode()].argCMode
+func (inst Instruction) CMode() byte {
+	return opcodes[inst.Opcode()].argCMode
+}
+
+func (inst Instruction) Execute(vm api.LuaVM) {
+	action := opcodes[inst.Opcode()].action
+	if action != nil {
+		action(inst, vm)
+	} else {
+		panic(inst.OpName())
+	}
 }
